@@ -60,7 +60,7 @@ export class AppComponent implements OnInit, AfterViewInit {
     const xScale = d3
       .scaleLinear()
       .domain([d3.min(data, (d) => d.year), d3.max(data, (d) => d.year)])
-      .range([0, width]);
+      .range([0, width - spacing]);
 
     const yScale = d3.scaleLinear().range([height - spacing, 0]);
 
@@ -80,7 +80,8 @@ export class AppComponent implements OnInit, AfterViewInit {
 
     yScale.domain([
       -10,
-      d3.max(convertedData, (data) => d3.max(data.values, (d) => d.value)),
+      d3.max(convertedData, (data) => d3.max(data.values, (d) => d.value)) +
+        100,
     ]);
 
     color.domain(convertedData.map((c) => c.id));
@@ -127,9 +128,9 @@ export class AppComponent implements OnInit, AfterViewInit {
     this.vertline = this.svg
       .append('rect')
       .attr('x', 600)
-      .attr('y', 0)
-      .attr('width', 600)
-      .attr('height', height - spacing)
+      .attr('y', yScale(210))
+      .attr('width', 540)
+      .attr('height', yScale.invert(0))
       .attr('stroke', 'black')
       .attr('fill', '#69a3b2')
       .attr('opacity', 0.5);
@@ -140,10 +141,10 @@ export class AppComponent implements OnInit, AfterViewInit {
     const epsilon = (+keys[1] - +keys[0]) / 2;
     const mouseX = d3.event.pageX;
     const nearest = keys.find((a: any) => {
-      return Math.abs(a - mouseX) <= epsilon;
+      return Math.abs(a - mouseX + 60) <= epsilon;
     });
     if (nearest) {
-      this.vertline.attr('x', nearest);
+      this.vertline.attr('x', nearest).attr('width', 540 - +nearest);
     } else {
       this.vertline.attr('x', 600);
     }
