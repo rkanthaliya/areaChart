@@ -36,25 +36,22 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   public createChart() {
     const ele = this.chartContainer.nativeElement;
-    const data1 = [
-      { year: 2000, desktops: 80 },
-      { year: 2001, desktops: 130 },
-      { year: 2002, desktops: 40 },
-      { year: 2003, desktops: 70 },
-      { year: 2004, desktops: 100 },
-      { year: 2005, desktops: 90 },
-    ];
 
     const data = [
       { year: 2000, desktops: 80, laptops: 210 },
       { year: 2001, desktops: 130, laptops: 50 },
       { year: 2002, desktops: 40, laptops: 70 },
       { year: 2003, desktops: 70, laptops: 180 },
-      { year: 2004, desktops: 100, laptops: 50 },
+      { year: 2004, desktops: -10, laptops: 50 },
       { year: 2005, desktops: 90, laptops: 190 },
     ];
-    const keys1 = ['desktops', 'laptops'];
-    const keys = ['desktops'];
+
+    const convertedData = Object.keys(data[0])
+      .slice(1)
+      .map((id) => ({
+        id,
+        values: data.map((d) => ({ date: d.year, value: d[id] })),
+      }));
 
     const width = 600;
     const height = 500;
@@ -64,52 +61,66 @@ export class AppComponent implements OnInit, AfterViewInit {
       .scaleLinear()
       .domain([d3.min(data, (d) => d.year), d3.max(data, (d) => d.year)])
       .range([0, width]);
+
     const yScale = d3.scaleLinear().range([height - spacing, 0]);
-    this.chart1 = d3.select(ele).append('svg');
-    this.svg = this.chart1
+
+    const color = d3
+      .scaleOrdinal()
+      .domain(['laptops', 'desktops'])
+      .range(['rgba(249, 208, 87, 0.7)', 'rgba(54, 174, 175, 0.65)']);
+
+    this.svg = d3
+      .select(ele)
+      .append('svg')
       .attr('width', width)
       .attr('height', height)
       .append('g')
       .attr('transform', 'translate(' + spacing / 2 + ',' + spacing / 2 + ')')
       .on('mousemove', this.mouseMove);
-    this.svg
-      .append('g')
-      .attr('transform', 'translate(0,' + (height - spacing) + ')')
-      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.format('d')));
-
-    const stack = d3.stack().keys(keys1);
-    const colors = ['dodgerblue', 'purple'];
-    const stackedData = stack(data);
-    console.log(stackedData);
 
     yScale.domain([
-      0,
-      d3.max(stackedData[stackedData.length - 1], (d) => d[1]),
+      -10,
+      d3.max(convertedData, (data) => d3.max(data.values, (d) => d.value)),
     ]);
-    this.svg.append('g').call(d3.axisLeft(yScale));
+
+    color.domain(convertedData.map((c) => c.id));
+
+    this.svg
+      .append('g')
+      .attr('class', 'axis axis--x')
+      .attr('transform', 'translate(0,' + yScale(0) + ')')
+      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.format('d')));
+
+    this.svg
+      .append('g')
+      .attr('class', 'axis axis--y')
+      .call(d3.axisLeft(yScale));
 
     const area = d3
       .area()
       .x((d: any) => {
-        var key = xScale(d.data.year);
+        const key = xScale(d.date);
         this.dataPoints[key] = this.dataPoints[key] || [];
         this.dataPoints[key].push(d);
-        return xScale(d.data.year);
+        return xScale(d.date);
       })
-      .y0((d) => yScale(d[0]))
-      .y1((d) => yScale(d[1]));
+      .y0(yScale(0))
+      .y1((d: any) => {
+        return yScale(d.value);
+      });
 
     const series = this.svg
-      .selectAll('g.series')
-      .data(stackedData)
+      .selectAll('.area')
+      .data(convertedData)
       .enter()
       .append('g')
-      .attr('class', 'series');
+      .attr('class', (d) => `area ${d.id}`);
+
     series
       .append('path')
-      .style('fill', (d, i) => colors[i])
+      .style('fill', (d) => color(d.id))
       .attr('d', (d: any, i: number) => {
-        return area(d);
+        return area(d.values);
       });
 
     //vertical line
