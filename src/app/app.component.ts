@@ -26,6 +26,7 @@ export class AppComponent implements OnInit, AfterViewInit {
   public data: any;
   public svg: any;
   public vertline: any;
+  public dataPoints = {};
   constructor() {}
 
   ngOnInit() {}
@@ -35,7 +36,6 @@ export class AppComponent implements OnInit, AfterViewInit {
 
   public createChart() {
     const ele = this.chartContainer.nativeElement;
-    //ele.addEventListener('mousemove', this.mouseMove);
     const data1 = [
       { year: 2000, desktops: 80 },
       { year: 2001, desktops: 130 },
@@ -90,9 +90,15 @@ export class AppComponent implements OnInit, AfterViewInit {
 
     const area = d3
       .area()
-      .x((d: any) => xScale(d.data.year))
+      .x((d: any) => {
+        var key = xScale(d.data.year);
+        this.dataPoints[key] = this.dataPoints[key] || [];
+        this.dataPoints[key].push(d);
+        return xScale(d.data.year);
+      })
       .y0((d) => yScale(d[0]))
       .y1((d) => yScale(d[1]));
+
     const series = this.svg
       .selectAll('g.series')
       .data(stackedData)
@@ -102,7 +108,9 @@ export class AppComponent implements OnInit, AfterViewInit {
     series
       .append('path')
       .style('fill', (d, i) => colors[i])
-      .attr('d', (d: any) => area(d));
+      .attr('d', (d: any, i: number) => {
+        return area(d);
+      });
 
     //vertical line
     this.vertline = this.svg
@@ -117,9 +125,14 @@ export class AppComponent implements OnInit, AfterViewInit {
   }
 
   public mouseMove = () => {
+    const keys = Object.keys(this.dataPoints);
+    const epsilon = (+keys[1] - +keys[0]) / 2;
     const mouseX = d3.event.pageX;
-    if (mouseX - 60 > 0 && mouseX < 601) {
-      this.vertline.attr('x', mouseX - 60);
+    const nearest = keys.find((a: any) => {
+      return Math.abs(a - mouseX) <= epsilon;
+    });
+    if (nearest) {
+      this.vertline.attr('x', nearest);
     } else {
       this.vertline.attr('x', 600);
     }
