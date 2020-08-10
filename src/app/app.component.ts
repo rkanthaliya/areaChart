@@ -25,7 +25,10 @@ export class AppComponent implements OnInit, AfterViewInit {
   public yAxis: any;
   public data: any;
   public svg: any;
-  public vertline: any;
+  public verticleRect: any;
+  public vertLine: any;
+  public vertCircle: any;
+  public yScalePos: number;
   public dataPoints = {};
   constructor() {}
 
@@ -42,7 +45,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       { year: 2001, desktops: 130, laptops: 50 },
       { year: 2002, desktops: 40, laptops: 70 },
       { year: 2003, desktops: 70, laptops: 180 },
-      { year: 2004, desktops: -10, laptops: 50 },
+      { year: 2004, desktops: 10, laptops: 50 },
       { year: 2005, desktops: 90, laptops: 190 },
     ];
 
@@ -76,12 +79,12 @@ export class AppComponent implements OnInit, AfterViewInit {
       .attr('height', height)
       .append('g')
       .attr('transform', 'translate(' + spacing / 2 + ',' + spacing / 2 + ')')
-      .on('mousemove', this.mouseMove);
+      .on('mousemove', this.mouseMove)
+      .on('mouseout', this.mouseOut);
 
     yScale.domain([
       -10,
-      d3.max(convertedData, (data) => d3.max(data.values, (d) => d.value)) +
-        100,
+      d3.max(convertedData, (data) => d3.max(data.values, (d) => d.value)),
     ]);
 
     color.domain(convertedData.map((c) => c.id));
@@ -90,12 +93,16 @@ export class AppComponent implements OnInit, AfterViewInit {
       .append('g')
       .attr('class', 'axis axis--x')
       .attr('transform', 'translate(0,' + yScale(0) + ')')
-      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.format('d')));
+      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.format('d')))
+      .call((g) => g.select('.domain').remove())
+      .call((g) => g.selectAll('.tick line').attr('stroke-opacity', 0));
 
     this.svg
       .append('g')
       .attr('class', 'axis axis--y')
-      .call(d3.axisLeft(yScale));
+      .call(d3.axisLeft(yScale))
+      .call((g) => g.select('.domain').remove())
+      .call((g) => g.selectAll('.tick line').attr('stroke-opacity', 0));
 
     const area = d3
       .area()
@@ -124,16 +131,35 @@ export class AppComponent implements OnInit, AfterViewInit {
         return area(d.values);
       });
 
-    //vertical line
-    this.vertline = this.svg
+    this.verticleRect = this.svg
       .append('rect')
       .attr('x', 600)
-      .attr('y', yScale(210))
+      .attr('y', 0)
       .attr('width', 540)
-      .attr('height', yScale.invert(0))
-      .attr('stroke', 'black')
-      .attr('fill', '#69a3b2')
+      .attr('height', height)
+      .attr('fill', '#fff')
       .attr('opacity', 0.5);
+
+    //vertical line
+    this.vertLine = this.svg
+      .append('line')
+      .attr('class', 'vertLine')
+      .attr('x1', 600)
+      .attr('x2', 600)
+      .attr('y1', yScale(0))
+      .attr('y2', yScale(210))
+      .attr('stroke', 'black')
+      .attr('stroke-width', 1);
+
+    this.yScalePos = yScale(210) - 10;
+    //verticle circle
+    this.vertCircle = this.svg
+      .append('circle')
+      .attr('class', 'vertCircle')
+      .attr('r', 5)
+      .attr('transform', 'translate(600,' + (yScale(210) - 10) + ')')
+      .attr('stroke', 'black')
+      .attr('stroke-width', 1);
   }
 
   public mouseMove = () => {
@@ -144,9 +170,20 @@ export class AppComponent implements OnInit, AfterViewInit {
       return Math.abs(a - mouseX + 60) <= epsilon;
     });
     if (nearest) {
-      this.vertline.attr('x', nearest).attr('width', 540 - +nearest);
-    } else {
-      this.vertline.attr('x', 600);
+      this.verticleRect.attr('x', nearest).attr('width', 540 - +nearest);
+      this.vertLine.attr('x1', nearest).attr('x2', nearest);
+      this.vertCircle.attr(
+        'transform',
+        'translate(' + nearest + ',' + +this.yScalePos + ')'
+      );
     }
+  };
+  public mouseOut = () => {
+    this.verticleRect.attr('x', 600).attr('width', 0);
+    this.vertLine.attr('x1', 600).attr('x2', 600);
+    this.vertCircle.attr(
+      'transform',
+      'translate(' + 600 + ',' + +this.yScalePos + ')'
+    );
   };
 }
