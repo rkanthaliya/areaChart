@@ -47,6 +47,12 @@ export class AppComponent implements OnInit, AfterViewInit {
       { year: 2003, desktops: 70, laptops: 180 },
       { year: 2004, desktops: 10, laptops: 50 },
       { year: 2005, desktops: 90, laptops: 190 },
+      { year: 2006, desktops: 80, laptops: 210 },
+      { year: 2007, desktops: 130, laptops: 50 },
+      { year: 2008, desktops: 40, laptops: 70 },
+      { year: 2009, desktops: 70, laptops: 180 },
+      { year: 2010, desktops: 10, laptops: 50 },
+      { year: 2011, desktops: 90, laptops: 190 },
     ];
 
     const convertedData = Object.keys(data[0])
@@ -77,10 +83,10 @@ export class AppComponent implements OnInit, AfterViewInit {
       .append('svg')
       .attr('width', width)
       .attr('height', height)
-      .append('g')
-      .attr('transform', 'translate(' + spacing / 2 + ',' + spacing / 2 + ')')
       .on('mousemove', this.mouseMove)
-      .on('mouseout', this.mouseOut);
+      .on('mouseout', this.mouseOut)
+      .append('g')
+      .attr('transform', 'translate(' + spacing / 2 + ',' + spacing / 2 + ')');
 
     yScale.domain([
       -10,
@@ -163,12 +169,15 @@ export class AppComponent implements OnInit, AfterViewInit {
   }
 
   public mouseMove = () => {
-    const keys = Object.keys(this.dataPoints);
+    const keys = Object.keys(this.dataPoints).sort(function (a, b) {
+      return +a - +b;
+    });
     const epsilon = (+keys[1] - +keys[0]) / 2;
     const mouseX = d3.event.pageX;
     const nearest = keys.find((a: any) => {
       return Math.abs(a - mouseX + 60) <= epsilon;
     });
+    console.log(nearest);
     if (nearest) {
       this.verticleRect.attr('x', nearest).attr('width', 540 - +nearest);
       this.vertLine.attr('x1', nearest).attr('x2', nearest);
@@ -179,11 +188,16 @@ export class AppComponent implements OnInit, AfterViewInit {
     }
   };
   public mouseOut = () => {
-    this.verticleRect.attr('x', 600).attr('width', 0);
-    this.vertLine.attr('x1', 600).attr('x2', 600);
-    this.vertCircle.attr(
-      'transform',
-      'translate(' + 600 + ',' + +this.yScalePos + ')'
-    );
+    const mouseX = d3.event.pageX;
+    const mouseY = d3.event.pageY;
+    if (mouseX > 540 || mouseY > 500) {
+      console.log('hide');
+      this.verticleRect.attr('x', 600).attr('width', 0);
+      this.vertLine.attr('x1', 600).attr('x2', 600);
+      this.vertCircle.attr(
+        'transform',
+        'translate(' + 600 + ',' + +this.yScalePos + ')'
+      );
+    }
   };
 }
