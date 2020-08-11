@@ -105,6 +105,11 @@ export class AppComponent implements OnInit, AfterViewInit {
       .domain(['laptops', 'desktops'])
       .range(['rgba(249, 208, 87, 0.7)', 'rgba(54, 174, 175, 0.65)']);
 
+    const newcolor = d3
+      .scaleOrdinal()
+      .domain(['laptops', 'desktops'])
+      .range(['red', 'rgba(54, 174, 175)']);
+
     this.svg = d3
       .select(ele)
       .append('svg')
@@ -116,11 +121,13 @@ export class AppComponent implements OnInit, AfterViewInit {
       .attr('transform', 'translate(' + spacing / 2 + ',' + spacing / 2 + ')');
 
     yScale.domain([
-      -10,
+      d3.min(convertedData, (data) => d3.min(data.values, (d) => d.value)),
       d3.max(convertedData, (data) => d3.max(data.values, (d) => d.value)),
     ]);
 
     color.domain(convertedData.map((c) => c.id));
+
+    newcolor.domain(convertedData.map((c) => c.id));
 
     this.svg
       .append('g')
@@ -137,7 +144,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       .call((g) => g.select('.domain').remove())
       .call((g) => g.selectAll('.tick line').attr('stroke-opacity', 0));
 
-    const area = d3
+    const areaPos = d3
       .area()
       .x((d: any) => {
         const key = xScale(new Date(d.date));
@@ -145,9 +152,22 @@ export class AppComponent implements OnInit, AfterViewInit {
         this.dataPoints[key].push(d);
         return xScale(new Date(d.date));
       })
-      .y0(yScale(0))
+      .y0(yScale(1))
       .y1((d: any) => {
-        return yScale(d.value);
+        return yScale(Math.max(1.0, d.value));
+      });
+
+    const areaNeg = d3
+      .area()
+      .x((d: any) => {
+        const key = xScale(new Date(d.date));
+        this.dataPoints[key] = this.dataPoints[key] || [];
+        this.dataPoints[key].push(d);
+        return xScale(new Date(d.date));
+      })
+      .y0(yScale(1))
+      .y1((d: any) => {
+        return yScale(Math.min(1.0, d.value));
       });
 
     const series = this.svg
@@ -159,9 +179,22 @@ export class AppComponent implements OnInit, AfterViewInit {
 
     series
       .append('path')
-      .style('fill', (d) => color(d.id))
+      .style('fill', (d) => {
+        return color(d.id);
+      })
+      .style('stroke', 'white')
+      .style('stroke-width', '2')
       .attr('d', (d: any, i: number) => {
-        return area(d.values);
+        return areaPos(d.values);
+      });
+
+    series
+      .append('path')
+      .style('fill', (d) => {
+        return newcolor(d.id);
+      })
+      .attr('d', (d: any, i: number) => {
+        return areaNeg(d.values);
       });
 
     this.verticleRect = this.svg

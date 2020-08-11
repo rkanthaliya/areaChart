@@ -32,21 +32,21 @@ export const dummyData = [
   {
     year: '2016/05/19 06:00',
     desktops: 0,
-    laptops: 216.7539,
+    laptops: -216.7539,
   },
   {
     year: '2016/05/19 07:00',
-    desktops: 103.1,
-    laptops: 177.90312,
+    desktops: -103.1,
+    laptops: -177.90312,
   },
   {
     year: '2016/05/19 08:00',
-    desktops: 319.2,
-    laptops: 217.39217999999997,
+    desktops: -319.2,
+    laptops: -217.39217999999997,
   },
   {
     year: '2016/05/19 09:00',
-    desktops: 366.5,
+    desktops: -366.5,
     laptops: 261.4992,
   },
   {
