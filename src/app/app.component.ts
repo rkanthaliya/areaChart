@@ -1,3 +1,4 @@
+import { dummyData } from './data';
 import {
   Component,
   OnInit,
@@ -36,30 +37,52 @@ export class AppComponent implements OnInit, AfterViewInit {
   ngAfterViewInit() {
     this.createChart();
   }
+  public timeFormat(formats: any) {
+    return function (date) {
+      let i = formats.length - 1,
+        f = formats[i];
+      while (!f[1](date)) {
+        f = formats[--i];
+      }
+      return f[0](date);
+    };
+  }
 
   public createChart() {
     const ele = this.chartContainer.nativeElement;
 
-    const data = [
-      { year: 2000, desktops: 80, laptops: 210 },
-      { year: 2001, desktops: 130, laptops: 50 },
-      { year: 2002, desktops: 40, laptops: 70 },
-      { year: 2003, desktops: 70, laptops: 180 },
-      { year: 2004, desktops: 10, laptops: 50 },
-      { year: 2005, desktops: 90, laptops: 190 },
-      { year: 2006, desktops: 80, laptops: 210 },
-      { year: 2007, desktops: 130, laptops: 50 },
-      { year: 2008, desktops: 40, laptops: 70 },
-      { year: 2009, desktops: 70, laptops: 180 },
-      { year: 2010, desktops: 10, laptops: 50 },
-      { year: 2011, desktops: 90, laptops: 190 },
-    ];
+    const data = dummyData;
+
+    const ticksCount = () => {
+      return 6;
+    };
+
+    const dynamicDateFormat = this.timeFormat([
+      [
+        d3.timeFormat('%Y'),
+        function () {
+          return true;
+        },
+      ], // <-- how to display when Jan 1 YYYY
+      [
+        d3.timeFormat('%b %Y'),
+        function (d) {
+          return d.getMonth();
+        },
+      ],
+      [
+        d3.timeFormat('%d %b'),
+        function (d) {
+          return d.getDate() !== 1;
+        },
+      ],
+    ]);
 
     const convertedData = Object.keys(data[0])
       .slice(1)
       .map((id) => ({
         id,
-        values: data.map((d) => ({ date: d.year, value: d[id] })),
+        values: data.map((d) => ({ date: new Date(d.year), value: d[id] })),
       }));
 
     const width = 600;
@@ -67,8 +90,12 @@ export class AppComponent implements OnInit, AfterViewInit {
     const spacing = 60;
 
     const xScale = d3
-      .scaleLinear()
-      .domain([d3.min(data, (d) => d.year), d3.max(data, (d) => d.year)])
+      .scaleTime()
+      .domain(
+        d3.extent(data, function (d) {
+          return new Date(d.year);
+        })
+      )
       .range([0, width - spacing]);
 
     const yScale = d3.scaleLinear().range([height - spacing, 0]);
@@ -99,7 +126,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       .append('g')
       .attr('class', 'axis axis--x')
       .attr('transform', 'translate(0,' + yScale(0) + ')')
-      .call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.format('d')))
+      .call(d3.axisBottom(xScale).ticks(8).tickFormat(dynamicDateFormat))
       .call((g) => g.select('.domain').remove())
       .call((g) => g.selectAll('.tick line').attr('stroke-opacity', 0));
 
@@ -113,10 +140,10 @@ export class AppComponent implements OnInit, AfterViewInit {
     const area = d3
       .area()
       .x((d: any) => {
-        const key = xScale(d.date);
+        const key = xScale(new Date(d.date));
         this.dataPoints[key] = this.dataPoints[key] || [];
         this.dataPoints[key].push(d);
-        return xScale(d.date);
+        return xScale(new Date(d.date));
       })
       .y0(yScale(0))
       .y1((d: any) => {
@@ -146,7 +173,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       .attr('fill', '#fff')
       .attr('opacity', 0.5);
 
-    //vertical line
+    // vertical line
     this.vertLine = this.svg
       .append('line')
       .attr('class', 'vertLine')
@@ -158,7 +185,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       .attr('stroke-width', 1);
 
     this.yScalePos = yScale(210) - 10;
-    //verticle circle
+    // verticle circle
     this.vertCircle = this.svg
       .append('circle')
       .attr('class', 'vertCircle')
@@ -177,7 +204,6 @@ export class AppComponent implements OnInit, AfterViewInit {
     const nearest = keys.find((a: any) => {
       return Math.abs(a - mouseX + 60) <= epsilon;
     });
-    console.log(nearest);
     if (nearest) {
       this.verticleRect.attr('x', nearest).attr('width', 540 - +nearest);
       this.vertLine.attr('x1', nearest).attr('x2', nearest);
@@ -190,8 +216,8 @@ export class AppComponent implements OnInit, AfterViewInit {
   public mouseOut = () => {
     const mouseX = d3.event.pageX;
     const mouseY = d3.event.pageY;
-    if (mouseX > 540 || mouseY > 500) {
-      console.log('hide');
+    console.log(mouseY);
+    if (mouseX > 540 || mouseY > 460) {
       this.verticleRect.attr('x', 600).attr('width', 0);
       this.vertLine.attr('x1', 600).attr('x2', 600);
       this.vertCircle.attr(
