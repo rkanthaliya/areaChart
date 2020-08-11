@@ -144,20 +144,46 @@ export class AppComponent implements OnInit, AfterViewInit {
       .call((g) => g.select('.domain').remove())
       .call((g) => g.selectAll('.tick line').attr('stroke-opacity', 0));
 
-    const areaPos = d3
-      .area()
-      .x((d: any) => {
-        const key = xScale(new Date(d.date));
-        this.dataPoints[key] = this.dataPoints[key] || [];
-        this.dataPoints[key].push(d);
-        return xScale(new Date(d.date));
+    this.svg
+      .append('linearGradient')
+      .attr('id', 'temperature-gradient')
+      .attr('gradientUnits', 'userSpaceOnUse')
+      .attr('x1', 0)
+      .attr('y1', yScale(1))
+      .attr('x2', 0)
+      .attr('y2', yScale(2))
+      .selectAll('stop')
+      .data([
+        { offset: 0, color: 'steelblue' },
+        { offset: 1, color: 'rgba(249, 208, 87, 0.7)' },
+      ])
+      .enter()
+      .append('stop')
+      .attr('offset', function (d) {
+        return d.offset;
       })
-      .y0(yScale(1))
-      .y1((d: any) => {
-        return yScale(Math.max(1.0, d.value));
+      .attr('stop-color', function (d) {
+        return d.color;
       });
-
-    const areaNeg = d3
+    this.svg
+      .append('linearGradient')
+      .attr('id', 'temperature-gradient1')
+      .attr('gradientUnits', 'userSpaceOnUse')
+      .attr('x1', 0)
+      .attr('y1', yScale(50))
+      .attr('x2', 0)
+      .attr('y2', yScale(60))
+      .selectAll('stop')
+      .data([{ offset: '0', color: 'rgba(54, 174, 175, 0.65)' }])
+      .enter()
+      .append('stop')
+      .attr('offset', function (d) {
+        return d.offset;
+      })
+      .attr('stop-color', function (d) {
+        return d.color;
+      });
+    const area = d3
       .area()
       .x((d: any) => {
         const key = xScale(new Date(d.date));
@@ -167,7 +193,7 @@ export class AppComponent implements OnInit, AfterViewInit {
       })
       .y0(yScale(1))
       .y1((d: any) => {
-        return yScale(Math.min(1.0, d.value));
+        return yScale(d.value);
       });
 
     const series = this.svg
@@ -180,21 +206,16 @@ export class AppComponent implements OnInit, AfterViewInit {
     series
       .append('path')
       .style('fill', (d) => {
-        return color(d.id);
+        const id =
+          d.id === 'laptops'
+            ? '#temperature-gradient'
+            : '#temperature-gradient1';
+        return `url(${id})`;
       })
       .style('stroke', 'white')
       .style('stroke-width', '2')
       .attr('d', (d: any, i: number) => {
-        return areaPos(d.values);
-      });
-
-    series
-      .append('path')
-      .style('fill', (d) => {
-        return newcolor(d.id);
-      })
-      .attr('d', (d: any, i: number) => {
-        return areaNeg(d.values);
+        return area(d.values);
       });
 
     this.verticleRect = this.svg
