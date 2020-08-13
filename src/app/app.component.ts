@@ -135,7 +135,9 @@ export class AppComponent implements OnInit, AfterViewInit {
       .attr('transform', 'translate(0,' + yScale(0) + ')')
       .call(d3.axisBottom(xScale).ticks(8).tickFormat(dynamicDateFormat))
       .call((g) => g.select('.domain').remove())
-      .call((g) => g.selectAll('.tick line').attr('stroke-opacity', 0));
+      .call((g) => g.selectAll('.tick line').attr('stroke-opacity', 0))
+      .selectAll('.tick text')
+      .call(this.wrap);
 
     this.svg
       .append('g')
@@ -280,4 +282,34 @@ export class AppComponent implements OnInit, AfterViewInit {
       );
     }
   };
+  public wrap(text) {
+    text.each(function () {
+      const value = d3.select(this);
+      const words = value.text().split(/\s+/).reverse();
+      let line = [];
+      let lineNumber = 0;
+      const lineHeight = 1.1; // ems
+      const y = value.attr('y');
+      const dy = parseFloat(value.attr('dy'));
+      let tspan = value
+        .text(null)
+        .append('tspan')
+        .attr('x', 0)
+        .attr('y', y)
+        .attr('dy', dy + 'em');
+      words.forEach((word) => {
+        line.push(word);
+        tspan.text(line.join(' '));
+        line.pop();
+        tspan.text(line.join(' '));
+        line = [word];
+        tspan = value
+          .append('tspan')
+          .attr('x', 0)
+          .attr('y', y)
+          .attr('dy', `${++lineNumber * lineHeight + dy}em`)
+          .text(word);
+      });
+    });
+  }
 }
